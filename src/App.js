@@ -1,36 +1,66 @@
-import { Alchemy, Network } from 'alchemy-sdk';
-import { useEffect, useState } from 'react';
+import { Alchemy, Network } from "alchemy-sdk";
+import { useMemo, useState } from "react";
 
-import './App.css';
+import "./App.css";
 
-// Refer to the README doc for more information about using API
-// keys in client-side code. You should never do this in production
-// level code.
 const settings = {
   apiKey: process.env.REACT_APP_ALCHEMY_API_KEY,
   network: Network.ETH_MAINNET,
 };
 
-
-// In this week's lessons we used ethers.js. Here we are using the
-// Alchemy SDK is an umbrella library with several different packages.
-//
-// You can read more about the packages here:
-//   https://docs.alchemy.com/reference/alchemy-sdk-api-surface-overview#api-surface
 const alchemy = new Alchemy(settings);
 
 function App() {
   const [blockNumber, setBlockNumber] = useState();
+  const [block, setBlock] = useState();
+  const [transactions, setTransactions] = useState();
 
-  useEffect(() => {
-    async function getBlockNumber() {
-      setBlockNumber(await alchemy.core.getBlockNumber());
-    }
+  useMemo(() => {
+    const getBlockNumber = async () => {
+      const blockNumber = await alchemy.core.getBlockNumber();
+      setBlockNumber(blockNumber);
+    };
 
     getBlockNumber();
-  });
+  }, []);
 
-  return <div className="App">Block Number: {blockNumber}</div>;
+  useMemo(() => {
+    if (!blockNumber) return;
+    const getBlock = async () => {
+      const block = await alchemy.core.getBlockWithTransactions(blockNumber);
+      setBlock(block);
+    };
+
+    getBlock();
+  }, [blockNumber]);
+
+  useMemo(() => {
+    if (!block) return;
+    setTransactions(block.transactions);
+  }, [block]);
+
+  return (
+    <div className="App" style={{ textAlign: "left" }}>
+      {blockNumber && <p>Block Number: {blockNumber}</p>}
+      {block && <p>Block Hash: {block.hash}</p>}
+      <div>
+        {transactions &&
+          transactions.map((transaction, index) => {
+            if (!transaction) return;
+            return (
+              <div
+                key={index}
+                style={{ border: "2px solid black", marginTop: "1rem" }}
+              >
+                <p>Hash: {transaction.hash}</p>
+                <p>From: {transaction.from}</p>
+                <p>To: {transaction.to}</p>
+              </div>
+            );
+          })}
+      </div>
+    </div>
+  );
 }
 
 export default App;
